@@ -1,0 +1,152 @@
+apiVersion: v1
+data:
+  application.conf: |
+    play.application.loader = id.trakkie.payment.impl.PaymentServerLoader
+
+    trakkie-payment.cassandra.keyspace = trakkie_payment
+
+    cassandra.default {
+      port = 9042
+      contact-points = ["host.minikube.internal"]
+      session-provider = akka.persistence.cassandra.ConfigSessionProvider
+      keyspace-autocreate = true
+      tables-autocreate = true
+
+      authentication {
+        username = "cassandra"
+        password = "cassandra"
+      }
+    }
+
+
+    db.default {
+      driver = "org.postgresql.Driver"
+      url = "jdbc:postgresql://host.minikube.internal:5432/trakkie"
+      username = "root"
+      password = "root"
+    }
+
+
+    kamon {
+      environment.service = "Trakkie Payment"
+      jaeger {
+          host = "host.minikube.internal"
+          port = 14268
+          protocol = http
+          http-url = ${kamon.jaeger.protocol}"://"${kamon.jaeger.host}":"${kamon.jaeger.port}"/api/traces"
+        }
+    }
+
+
+    kamon.trace.join-remote-parents-with-same-span-id=true
+
+
+    STRIPE_API_KEY =
+    "sk_test_51LRzL6H22cyZNduRltXblWLLMA1YVM6elAq1RkJx2lyVIM4puagSVdfaW3MnuWIr6ueWP55Yp2RdjMgfxGyLWHeX00aBkXdWTp"
+
+
+    play.http.secret.key=${?APPLICATION_SECRET}
+
+
+    play.server.pidfile.path=/dev/null
+
+
+    akka.persistence.cassandra.events-by-tag.first-time-bucket =
+    "20220801T00:00"
+
+
+    jdbc-defaults.slick.profile = "slick.jdbc.PostgresProfile$"
+
+
+    akka.management.cluster.bootstrap {
+      contact-point-discovery {
+        discovery-method = kubernetes-api
+        service-name = "payment"
+      }
+    }
+
+
+    akka.management.health-checks {
+      readiness-path = "health/ready"
+      liveness-path = "health/alive"
+    }
+
+
+    akka {
+        loglevel = DEBUG
+
+        http {
+            server.preview.enable-http2 = "on"
+        }
+
+        actor {
+            serializers {
+                jackson-json = "akka.serialization.jackson.JacksonJsonSerializer"
+            }
+            serialization-bindings {
+                "id.trakkie.payment.api.serializable.JsonSerializable"    = jackson-json
+            }
+        }
+    }
+
+
+    cassandra-query-journal {
+      first-time-bucket = "20220801T00:00"
+    }
+
+
+    cassandra-journal {
+      port = ${cassandra.default.port}
+      contact-points = ${cassandra.default.contact-points}
+      session-provider = ${cassandra.default.session-provider}
+      keyspace = ${trakkie-payment.cassandra.keyspace}
+      keyspace-autocreate = true
+      tables-autocreate = true
+
+      authentication {
+        username = ${cassandra.default.authentication.username}
+        password = ${cassandra.default.authentication.password}
+      }
+    }
+
+
+    cassandra-snapshot-store {
+      port = ${cassandra.default.port}
+      contact-points = ${cassandra.default.contact-points}
+      session-provider = ${cassandra.default.session-provider}
+      keyspace = ${trakkie-payment.cassandra.keyspace}
+      keyspace-autocreate = true
+      tables-autocreate = true
+
+      authentication {
+        username = ${cassandra.default.authentication.username}
+        password = ${cassandra.default.authentication.password}
+      }
+    }
+
+
+    lagom.persistence.read-side.cassandra {
+      port = ${cassandra.default.port}
+      contact-points = ${cassandra.default.contact-points}
+      session-provider = ${cassandra.default.session-provider}
+      keyspace = ${trakkie-payment.cassandra.keyspace}
+      keyspace-autocreate = true
+      tables-autocreate = true
+
+      authentication {
+        username = ${cassandra.default.authentication.username}
+        password = ${cassandra.default.authentication.password}
+      }
+    }
+
+    lagom.broker.defaults.kafka {
+      brokers = "host.minikube.internal:9092"
+    }
+
+    lagom.services {
+     cas_native = "tcp://host.minikube.internal:9042"
+     kafka_native = "tcp://host.minikube.internal:9092"
+    }
+kind: ConfigMap
+metadata:
+  name: payment-config

@@ -1,0 +1,95 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payment
+  labels:
+    app: payment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: payment
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: payment
+    spec:
+      containers:
+        - image: "payment-impl:1.0-SNAPSHOT"
+          imagePullPolicy: IfNotPresent
+          name: payment
+          env:
+            - name: JAVA_OPTS
+              value: "-Xms256m -Xmx256m -Dconfig.file=/opt/docker/conf/config/application.conf"
+            - name: APPLICATION_SECRET
+              value: "wtTRWTrNrqYMyebKP4KAvCTzUkLQYWUiuvaB6FJbhFMicZ4Vf9AJMjARQAhYfw3rNaRH6HSf8X8uN4Tzrym6LDuBoQ5Z6Us7rfdvYgZoNJwq97bRx58mXTFTCUdidZ4t"
+            - name: AKKA_CLUSTER_BOOTSTRAP_SERVICE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: "metadata.labels['app']"
+          ports:
+            - containerPort: 9000
+            - containerPort: 25520
+            - containerPort: 10001
+              name: "akka-remote"
+            - containerPort: 10002
+              name: "akka-mgmt-http"
+            - containerPort: 8558
+              protocol: TCP
+              name: management
+            - containerPort: 5266
+              name: kamon
+          livenessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: management
+          volumeMounts:
+            - name: app-config
+              mountPath: /opt/docker/conf/config
+      volumes:
+        - name: app-config
+          configMap:
+            name: payment-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: payment
+  labels:
+    app: payment
+spec:
+  ports:
+    - name: "http"
+      port: 9000
+      nodePort: 31002
+      targetPort: 9000
+    - name: "http"
+      port: 9000
+      nodePort: 31001
+      targetPort: 9000
+    - name: "akka-remote"
+      port: 10001
+      protocol: TCP
+      targetPort: 10001
+    - name: "akka-mgmt-http"
+      port: 10002
+      protocol: TCP
+      targetPort: 10002
+    - port: 8558
+      protocol: TCP
+      name: management
+      targetPort: 8558
+  selector:
+    app: payment
+  type: NodePort
