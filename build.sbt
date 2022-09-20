@@ -1,6 +1,4 @@
-import com.typesafe.sbt.packager.docker.{Cmd, ExecCmd}
-
-ThisBuild / organization := "id.trakkie"
+ThisBuild / organization := "dev.lucasgrey"
 ThisBuild / version := "1.0-SNAPSHOT"
 
 // the Scala version that will be used for cross-compiled libraries
